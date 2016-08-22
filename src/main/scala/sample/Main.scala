@@ -1,7 +1,8 @@
 package sample
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated }
+import akka.actor._
 import akka.cluster.Cluster
+import akka.cluster.singleton._
 import com.typesafe.config.ConfigFactory
 
 object Main extends App {
@@ -13,13 +14,19 @@ object Main extends App {
 
     // Create an Akka system
     val system = ActorSystem("ClusterSystem", config)
-    // Create an actor that handles cluster domain events
-    system.actorOf(Props[SimpleClusterListener], name = "clusterListener")
-    Cluster(system) registerOnMemberUp {
-      val hello = system.actorOf(Props(classOf[HelloWorld]), name = "helloWorld")
-      hello ! "port"
-      hello ! port
-    }
+
+    val hello = system.actorOf(
+      ClusterSingletonManager.props(
+        singletonProps = Props(classOf[HelloWorld]),
+        terminationMessage = PoisonPill,
+        settings = ClusterSingletonManagerSettings(system)
+      ), name = "hello"
+    )
+    val helloProxy = system.actorOf(
+      ClusterSingletonProxy.props(singletonManagerPath = "/user/hello",
+                                  settings = ClusterSingletonProxySettings(system)),
+      name = "helloProxy")
+    helloProxy ! s"Port: $port"
   }
 }
 
