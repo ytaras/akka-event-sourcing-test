@@ -1,23 +1,24 @@
 version: '2'
 services:
-  cassandra:
-    image: cassandra:latest
-    ports:
-      - "9042:9042"
+  # cassandra:
+  #   image: cassandra:latest
+  #   ports:
+  #     - "9042:9042"
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
       - "2181:2181"
   kafka:
-    image: wurstmeister/kafka
+    build: docker/kafka/
     ports:
       - "9092"
     depends_on:
       - zookeeper
     links:
-      - zookeeper:zk
+      - zookeeper
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 192.168.99.100
+      #KAFKA_ADVERTISED_HOST_NAME: 10.128.176.171
+      HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -9,6 +9,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % "2.4.9",
   "com.typesafe.akka" %% "akka-cluster-metrics" % "2.4.9",
   "com.typesafe.akka" %% "akka-cluster-tools" % "2.4.9",
-  "com.typesafe.akka" %% "akka-cluster-sharding" % "2.4.9"
+  "com.typesafe.akka" %% "akka-cluster-sharding" % "2.4.9",
+  "com.typesafe.akka" %% "akka-stream" % "2.4.9",
+  "com.typesafe.akka" %% "akka-stream-kafka" % "0.11-RC1"
 )
 

@@ -7,14 +7,14 @@ import akka.cluster.sharding._
 import com.typesafe.config.ConfigFactory
 
 object Main extends App {
-  val ports = Seq("2551", "2552", "0")
+  val ports = Seq("0")// Seq("2551", "2552", "0")
   ports foreach { port =>
     // Override the configuration of the port
     val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).
       withFallback(ConfigFactory.load())
 
     // Create an Akka system
-    val system = ActorSystem("ClusterSystem", config)
+    implicit val system = ActorSystem("ClusterSystem", config)
 
     val hello = system.actorOf(
       ClusterSingletonManager.props(
@@ -41,9 +41,11 @@ object Main extends App {
       messageExtractor = extractor
     )
 
-    (1 to 1000).foreach { i =>
-      helloShard ! ((i.toString, s"port $port"))
-    }
+    // (1 to 1000).foreach { i =>
+    //   helloShard ! ((i.toString, s"port $port"))
+    // }
+    new Generator
+    new Enricher
   }
 }
 
