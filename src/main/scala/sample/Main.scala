@@ -3,6 +3,7 @@ package sample
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.singleton._
+import akka.cluster.sharding._
 import com.typesafe.config.ConfigFactory
 
 object Main extends App {
@@ -27,14 +28,32 @@ object Main extends App {
                                   settings = ClusterSingletonProxySettings(system)),
       name = "helloProxy")
     helloProxy ! s"Port: $port"
+
+    val extractor = new ShardRegion.HashCodeMessageExtractor(100) {
+      override def entityId(m: Any): String = m match {
+        case (x: String, y) => x
+      }
+    }
+    val helloShard = ClusterSharding(system).start(
+      typeName = "hello",
+      entityProps = Props[HelloWorld],
+      settings = ClusterShardingSettings(system),
+      messageExtractor = extractor
+    )
+
+    (1 to 1000).foreach { i =>
+      helloShard ! ((i.toString, s"port $port"))
+    }
   }
 }
 
 class HelloWorld extends Actor with ActorLogging {
+  import ShardRegion.Passivate
 
   def receive = {
     case x: String => log.info(s"Received {}", x)
     case Done => context.stop(self)
+    case (x: String, y: Any) => log.info("Message with id {} : {}", x, y)
   }
 }
 
