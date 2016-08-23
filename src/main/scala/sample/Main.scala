@@ -7,10 +7,12 @@ import akka.cluster.sharding._
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object Main extends App {
-  val ports = Seq("0")// Seq("2551", "2552", "0")
+  val ports = Seq("2551", "2552", "0")
   ports foreach { port =>
+    implicit val p = Port(port)
     // Override the configuration of the port
     val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).
       withFallback(ConfigFactory.load())
@@ -18,42 +20,19 @@ object Main extends App {
     // Create an Akka system
     implicit val system = ActorSystem("ClusterSystem", config)
 
-    val hello = system.actorOf(
+    val collector = system.actorOf(
       ClusterSingletonManager.props(
-        singletonProps = Props(classOf[HelloWorld]),
+        singletonProps = Props(classOf[MessagesCollector]),
         terminationMessage = PoisonPill,
         settings = ClusterSingletonManagerSettings(system)
-      ), name = "hello"
+      ), name = "messagesCollector"
     )
-    val helloProxy = system.actorOf(
-      ClusterSingletonProxy.props(singletonManagerPath = "/user/hello",
+    val collectorProxy = system.actorOf(
+      ClusterSingletonProxy.props(singletonManagerPath = "/user/messagesCollector",
                                   settings = ClusterSingletonProxySettings(system)),
-      name = "helloProxy")
-    helloProxy ! s"Port: $port"
+      name = "messagesCollectorProxy")
 
-    val extractor = new ShardRegion.HashCodeMessageExtractor(100) {
-      override def entityId(m: Any): String = m match {
-        case (x: String, y) => x
-      }
-    }
-    val helloShard = ClusterSharding(system).start(
-      typeName = "hello",
-      entityProps = Props[HelloWorld],
-      settings = ClusterShardingSettings(system),
-      messageExtractor = extractor
-    )
-
-    val done: Future[_] = Generator.run.flatMap(_ => Enricher.run).flatMap { _ => system.terminate() }
-  }
-}
-
-class HelloWorld extends Actor with ActorLogging {
-  import ShardRegion.Passivate
-
-  def receive = {
-    case x: String => log.info(s"Received {}", x)
-    case Done => context.stop(self)
-    case (x: String, y: Any) => log.info("Message with id {} : {}", x, y)
+    val done: Future[_] = Generator.run.flatMap(_ => Enricher.run(collectorProxy)).flatMap { _ => system.terminate() }
   }
 }
 
@@ -67,3 +46,5 @@ class Terminator(actor: ActorRef) extends Actor with ActorLogging {
 }
 
 case object Done
+
+case class Port(port: String)
