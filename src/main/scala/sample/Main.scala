@@ -5,6 +5,8 @@ import akka.cluster.Cluster
 import akka.cluster.singleton._
 import akka.cluster.sharding._
 import com.typesafe.config.ConfigFactory
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object Main extends App {
   val ports = Seq("0")// Seq("2551", "2552", "0")
@@ -41,11 +43,7 @@ object Main extends App {
       messageExtractor = extractor
     )
 
-    // (1 to 1000).foreach { i =>
-    //   helloShard ! ((i.toString, s"port $port"))
-    // }
-    new Generator
-    new Enricher
+    val done: Future[_] = Generator.run.flatMap(_ => Enricher.run).flatMap { _ => system.terminate() }
   }
 }
 
