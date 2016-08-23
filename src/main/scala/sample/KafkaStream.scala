@@ -14,12 +14,14 @@ class Enricher(implicit system: ActorSystem) {
 
   val consumerSettings = ConsumerSettings(system, new LongDeserializer(), new StringDeserializer())
     .withBootstrapServers("localhost:9092")
+    .withGroupId("enricher")
 
+  println("Starting consumer")
   Consumer
     .committableSource(consumerSettings, Subscriptions.topics("rawEvents"))
     .runForeach { msg =>
     println(
-      s"{msg.record.key()} - ${msg.record.value()} - $msg"
+      s"${msg.record.key()} - ${msg.record.value()} - $msg"
     )
   }
 
@@ -36,7 +38,6 @@ class Generator(implicit system: ActorSystem) {
       new ProducerRecord[JLong, String]("rawEvents", i, s"Mesage for key $i"), i
     )
   }
-    .alsoTo(Sink.foreach(println))
     .via(Producer.flow(producerSettings))
-    .runWith(Sink.foreach(println))
+    .runWith(Sink.ignore)
 }

@@ -17,8 +17,8 @@ services:
     links:
       - zookeeper
     environment:
-      #KAFKA_ADVERTISED_HOST_NAME: 10.128.176.171
-      HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
+      KAFKA_ADVERTISED_HOST_NAME: 10.128.176.171
+      #HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
