@@ -16,7 +16,7 @@ import java.lang.{Long => JLong}
 import scala.concurrent.Future
 
 object Enricher {
-  def run(sendTo: ActorRef)(implicit system: ActorSystem): Future[_] = {
+  def run(sendTo: ActorRef)(implicit system: ActorSystem, port: Port): Future[_] = {
     implicit val materializer = ActorMaterializer()
     val consumerSettings = ConsumerSettings(system, new LongDeserializer(), new StringDeserializer())
       .withBootstrapServers("localhost:9092")
@@ -30,7 +30,7 @@ object Enricher {
 
     val sendToActor: Sink[CommittableMessage[JLong, String], NotUsed] =
       Flow[CommittableMessage[JLong, String]]
-        .map { x =>  x.record.key -> x.record.value }
+        .map { x =>  x.record.key -> s"""Message "${x.record.value}" received in $port""" }
         .to(Sink.actorRef(sendTo, Done))
 
     val commit: Sink[CommittableMessage[JLong, String], Future[_]] =
